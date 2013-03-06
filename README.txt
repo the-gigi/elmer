@@ -11,7 +11,7 @@ Finally you can create a whole cluster from scratch and administer it.
 
 The script assumes the following:
 
-- The cluster nodes is a *nix boxes
+- The cluster nodes are *nix boxes
 - RabbitMQ is installed in the default location using the default configuration
 - The node is called rabbit@<host>
 - The Erlang cookie is identical on all hosts (verify with show_cookies task)
