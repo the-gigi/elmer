@@ -1,5 +1,5 @@
 Elmer
------
+=====
 A Fabric file called rabbit.py to control a RabbitMQ cluster
 
 The cluster hosts, user and password are defined in config.py
