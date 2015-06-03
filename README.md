@@ -17,3 +17,7 @@ The script assumes the following:
 - The Erlang cookie is identical on all hosts (verify with show_cookies task)
 - Python 2.6+ is installed in /usr/local/bin/python
 - The RabbitMQ command-line admin is installed in /usr/local/bin/rabbitmqadmin
+
+The license is MIT. Have fun with it.
+
+
