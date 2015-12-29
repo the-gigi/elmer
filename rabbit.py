@@ -165,11 +165,12 @@ def build_cluster(disc_nodes, ram_nodes):
 
     for host, node in nodes[1:]:
         with settings(host_string=node):
-            cluster_cmd = 'cluster ' + disc_node_names
+            optioal_ram = '' if node in disc_node_names else '--ram '
+            cluster_cmd = 'join_cluster ' + optioal_ram + disc_node_names
             rmq(cluster_cmd)
             rmq('start_app')
 
-            # Make sure the current node is really running as part of the cluster
+            # Make sure the current node is running as part of the cluster
             s = rmq('cluster_status')
             lines = s.split('\r\n')
             for line in lines:
@@ -177,7 +178,6 @@ def build_cluster(disc_nodes, ram_nodes):
                     if not 'rabbit@' + host in line:
                         return False
                     break
-
     return True
 
 
