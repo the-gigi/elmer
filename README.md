@@ -1,6 +1,7 @@
 Elmer
 =====
-A Fabric file called rabbit.py to control a RabbitMQ 3.X cluster
+A Fabric file called rabbit.py to control a [RabbitMQ](https://www.rabbitmq.com)
+3.X cluster
 
 The cluster hosts, user and password are defined in config.py. Copy the 
 sample_config.py file and populate with your cluster's information.
