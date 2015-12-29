@@ -1,19 +1,14 @@
-import os
-import sys
 import copy
-import time
 import datetime
-import fabric
+import sys
+import time
+
+import config
 from fabric.api import (sudo,
                         env,
                         task,
-                        hosts,
                         settings,
-                        hide,
                         show)
-from fabric.tasks import execute
-
-import config
 
 """A Fabric file to control a RabbitMQ cluster
 
@@ -48,6 +43,7 @@ if env.hosts == []:
 env.user = config.user
 env.password = config.password
 
+
 @task
 def start_server():
     """Start a server remotely
@@ -78,6 +74,7 @@ def wait_for_server(node):
 
     return is_rabbit_running(node)
 
+
 @task
 def rmq(command):
     """The main interface to control the cluster (wraps rabbitmqctl)
@@ -90,10 +87,12 @@ def rmq(command):
     else:
         return sudo('/usr/sbin/rabbitmqctl ' + command)
 
-#@hosts(*env.hosts)
+
+# @hosts(*env.hosts)
 @task
 def show_cookies():
     return sudo('cat /var/lib/rabbitmq/.erlang.cookie')
+
 
 def is_rabbit_running(host):
     """Check the status of RabbitMQ on the target node
@@ -104,6 +103,7 @@ def is_rabbit_running(host):
     with settings(host_string=host):
         s = rmq('status')
         return '{rabbit,' in s and '{mnesia' in s
+
 
 def build_cluster(disc_nodes, ram_nodes):
     """Reset all the nodes and build the cluster from scratch
@@ -116,7 +116,7 @@ def build_cluster(disc_nodes, ram_nodes):
     """
 
     # Make Fabric less verbose
-    #fabric.state.output['output'] = False
+    # fabric.state.output['output'] = False
     with show('output'):
         nodes = disc_nodes + ram_nodes
         first = nodes[0][1]
@@ -180,6 +180,7 @@ def build_cluster(disc_nodes, ram_nodes):
 
     return True
 
+
 @task
 def rmqa(command):
     """ """
@@ -188,21 +189,22 @@ def rmqa(command):
     return sudo(cmd % (config.admin_user, config.admin_password, command))
 
 
-    #'exchange':   {'mandatory': ['name', 'type'],
+    # 'exchange':   {'mandatory': ['name', 'type'],
     #               'optional':  {'auto_delete': 'false', 'durable': 'true',
     #                             'internal': 'false'}},
-    #'queue':      {'mandatory': ['name'],
+    # 'queue':      {'mandatory': ['name'],
     #               'optional':  {'auto_delete': 'false', 'durable': 'true',
     #                             'node': None}},
-    #'binding':    {'mandatory': ['source', 'destination_type', 'destination',
+    # 'binding':    {'mandatory': ['source', 'destination_type', 'destination',
     #                             'routing_key'],
     #               'optional':  {}},
-    #'vhost':      {'mandatory': ['name'],
+    # 'vhost':      {'mandatory': ['name'],
     #               'optional':  {}},
-    #'user':       {'mandatory': ['name', 'password', 'tags'],
+    # 'user':       {'mandatory': ['name', 'password', 'tags'],
     #               'optional':  {}},
-    #'permission': {'mandatory': ['vhost', 'user', 'configure', 'write', 'read'],
+    # 'permission': {'mandatory': ['vhost', 'user', 'configure', 'write', 'read'],
     #               'optional':  {}}
+
 
 @task
 def declare_exchange(vhost, name, exchange_type='direct'):
@@ -210,40 +212,51 @@ def declare_exchange(vhost, name, exchange_type='direct'):
 
     The exchange_type may be 'direct', 'fanout', 'topic' or 'headers'
     """
-    cmd ='declare exchange -V {0} name={1} type={2}'.format(vhost, name, exchange_type)
+    cmd = 'declare exchange -V {0} name={1} type={2}'.format(vhost, name,
+                                                             exchange_type)
     rmqa(cmd)
+
 
 @task
 def declare_queue(vhost, node, name, auto_delete='false', durable='false'):
     """ """
-    cmd ='declare queue -V {0} node={1} name={2} auto_delete={3}  durable={4}'
-    cmd = cmd.format(vhost, node if node else 'rabbit', name, auto_delete, durable)
+    cmd = 'declare queue -V {0} node={1} name={2} auto_delete={3}  durable={4}'
+    cmd = cmd.format(vhost, node if node else 'rabbit', name, auto_delete,
+                     durable)
     rmqa(cmd)
+
 
 @task
 def bind(vhost, source, destination_type, destination, routing_key):
     """ """
-    cmd ='declare binding -V {0} source={1} destination_type={2} destination={3} routing_key={4}'
+    cmd = 'declare binding -V {0} source={1} destination_type={2} destination={3} routing_key={4}'
     cmd = cmd.format(vhost, source, destination_type, destination, routing_key)
     rmqa(cmd)
+
 
 @task
 def declare_vhost(name):
     """ """
-    cmd ='declare vhost name=' + name
+    cmd = 'declare vhost name=' + name
     rmqa(cmd)
+
 
 @task
 def declare_permission(vhost, user, configure='.*', read='.*', write='.*'):
-    cmd ='declare permission vhost={0} user={1} configure={2} read={3} write={4}'
-    cmd =cmd.format(vhost, user, configure, read, write)
+    cmd = 'declare permission vhost={0} user={1} configure={2} read={3} write={4}'
+    cmd = cmd.format(vhost, user, configure, read, write)
     rmqa(cmd)
 
+
 @task
-def add_user(vhost, username, password, configure='', read='', write='', tags=''):
+def add_user(vhost, username, password, configure='', read='', write='',
+             tags=''):
     """Add a user + permissions to a vhost"""
     # Declare user
-    cmd ='declare user -V {0} name={1} password={2} tags={3}'.format(vhost, username, password, tags)
+    cmd = 'declare user -V {0} name={1} password={2} tags={3}'.format(vhost,
+                                                                      username,
+                                                                      password,
+                                                                      tags)
     rmqa(cmd)
 
     # Declare permissions
@@ -251,9 +264,11 @@ def add_user(vhost, username, password, configure='', read='', write='', tags=''
 
 
 @task
-def add_queue(vhost, node, exchange, queue, auto_delete='false', durable='false'):
+def add_queue(vhost, node, exchange, queue, auto_delete='false',
+              durable='false'):
     declare_queue(vhost, node, queue, auto_delete, durable)
     bind(vhost, exchange, 'queue', queue, '')
+
 
 def admin_cluster(node, cluster_config, use_guest=False):
     """Setup the cluster with users, vhosts, exchanges and queues
@@ -279,11 +294,13 @@ def admin_cluster(node, cluster_config, use_guest=False):
 
         # Add the regular users
         for u in cluster_config['users']:
-            add_user(vhost, u['name'], u['password'], u['configure'], u['read'], u['write'], u['tags'])
+            add_user(vhost, u['name'], u['password'], u['configure'],
+                     u['read'], u['write'], u['tags'])
 
         # Add the admin user if currently using guest and restore admin user
         if use_guest:
-            add_user(vhost, admin_user, admin_password, '.*', '.*', '.*', 'Administrator')
+            add_user(vhost, admin_user, admin_password, '.*', '.*', '.*',
+                     'Administrator')
             config.admin_user = admin_user
             config.admin_password = admin_password
 
@@ -293,9 +310,11 @@ def admin_cluster(node, cluster_config, use_guest=False):
 
         for q in cluster_config['queues']:
             add_queue(vhost, q.get('node', None),
-                      q['exchange'], q['queue'], q['auto_delete'], q['durable'])
+                      q['exchange'], q['queue'], q['auto_delete'],
+                      q['durable'])
 
-        # TODO: Delete guest user
+            # TODO: Delete guest user
+
 
 def main():
     # Build the cluster from scratch
@@ -309,6 +328,7 @@ def main():
     if not ok:
         print 'Oh no, failed to administer the cluster :-('
         sys.exit(1)
+
 
 if __name__ == '__main__':
     main()
